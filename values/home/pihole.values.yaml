@@ -1,1 +1,128 @@
+replicaCount: 1
+strategyType: Recreate
+revisionHistoryLimit: 10
 
+image:
+  repository: "pihole/pihole"
+  tag: "2025.11.1"
+  pullPolicy: IfNotPresent
+
+serviceDns:
+  mixedService: false
+  type: LoadBalancer
+  port: 53
+  externalTrafficPolicy: Local
+  annotations: {}
+  extraLabels: {}
+
+serviceDhcp:
+  enabled: false
+
+serviceWeb:
+  type: ClusterIP
+  externalTrafficPolicy: Local
+  loadBalancerIP: ""
+  annotations: {}
+  extraLabels: {}
+  http:
+    enabled: true
+    port: 80
+  https:
+    enabled: false
+    port: 443
+
+virtualHost: pihole
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  path: /
+  pathType: Prefix
+  hosts:
+    - home.arpa
+  tls: []
+
+probes:
+  liveness:
+    enabled: true
+    type: command
+    initialDelaySeconds: 60
+    failureThreshold: 10
+    timeoutSeconds: 5
+  readiness:
+    enabled: true
+    type: command
+    initialDelaySeconds: 60
+    failureThreshold: 10
+    timeoutSeconds: 5
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1024Mi
+  limits:
+    memory: 2048Mi
+
+persistentVolumeClaim:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: "2Gi"
+  storageClass: "local-path"
+  annotations: {}
+
+admin:
+  enabled: true
+  existingSecret: "pihole-admin-secret"
+  passwordKey: "password"
+
+extraEnvVars:
+  TZ: "Europe/Berlin"
+  FTLCONF_dns_listeningMode: "all"
+  FTLCONF_webserver_domain: "pihole.home.arpa"
+  FTLCONF_webserver_paths_prefix: ""
+  FTLCONF_dns_domain_name: "home.arpa"
+  FTLCONF_dns_domain_local: "true"
+  FTLCONF_webserver_interface_theme: "default-auto"
+
+DNS1: "1.1.1.1"
+DNS2: "1.0.0.1"
+
+dnsmasq:
+  enableCustomDnsMasq: true
+  upstreamServers: []
+  customDnsEntries:
+    - "address=/just-serv.home.arpa/192.168.1.101"
+    - "address=/pihole.home.arpa/192.168.1.101"
+    - "address=/router.home.arpa/192.168.1.1"
+  additionalHostsEntries:
+    - "192.168.1.101 just-serv"
+  staticDhcpEntries: []
+  customSettings: {}
+  customCnameEntries: []
+
+adlists:
+  - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+
+whitelist: []
+blacklist: []
+regex: []
+
+monitoring:
+  podMonitor:
+    enabled: false
+  sidecar:
+    enabled: false
+    port: 9617
+
+podDnsConfig:
+  enabled: true
+  policy: "None"
+  nameservers:
+    - 127.0.0.1
+    - 1.1.1.1
+
+podDisruptionBudget:
+  enabled: false
